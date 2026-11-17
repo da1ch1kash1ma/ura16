@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>URA16 裏の顔診断</title>
+<meta name="description" content="質問ゼロ。いつも話しているAIが、あなたの話しかけ方のクセから16タイプの「裏の顔」を判定する。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* 明るいパステル基調。4つのグループ色で結果を色分けし、縦1列のスマホ画面で 入口 → 3ステップ → 結果 → 全タイプ と流す */
+  --bg: #f6f4f9;
+  --surface: #ffffff;
+  --line: #e6e1ee;
+  --text: #2b2433;
+  --muted: #6c6479;
+  --cta: #ff7a59;
+  --g: #34528c;      /* 結果のグループ色（JSで切り替え） */
+  --gt: #e7ecf6;     /* 結果のグループ淡色 */
+  --display: "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", "Hiragino Sans", "Noto Sans JP", sans-serif;
+  --body: "Zen Kaku Gothic New", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--body); font-size: 16px; line-height: 1.7; -webkit-text-size-adjust: 100%; }
+.wrap { max-width: 560px; margin: 0 auto; padding: 20px 16px 56px; display: flex; flex-direction: column; gap: 22px; }
+h1, h2, h3 { font-family: var(--display); font-weight: 800; margin: 0; line-height: 1.35; text-wrap: balance; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+.small { font-size: 13.5px; }
+
+/* 入口 */
+.hero { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 12px 4px 4px; }
+.brand { font-family: var(--display); font-weight: 800; letter-spacing: .18em; font-size: 13px; color: var(--muted); }
+.hero h1 { font-size: clamp(28px, 7.8vw, 38px); }
+.hero h1 em { font-style: normal; background: linear-gradient(transparent 62%, #ffd7c9 62%); padding: 0 2px; }
+.badges { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.badge { font-size: 13px; font-weight: 700; padding: 4px 12px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); }
+.groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: 100%; text-align: left; }
+.gcard { border-radius: 16px; padding: 12px 14px; color: #fff; display: flex; flex-direction: column; gap: 2px; min-height: 84px; }
+.gcard b { font-family: var(--display); font-size: 17px; }
+.gcard span { font-size: 12.5px; opacity: .95; line-height: 1.5; }
+
+/* 共通カード */
+.panel { background: var(--surface); border-radius: 22px; padding: 20px 18px; box-shadow: 0 6px 24px rgba(52, 40, 80, .07); display: flex; flex-direction: column; gap: 16px; }
+.privacy { display: flex; gap: 10px; align-items: flex-start; background: #f1eef7; border-radius: 14px; padding: 12px 14px; font-size: 13.5px; }
+.privacy b { white-space: nowrap; }
+
+/* ステップ */
+.stepper { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.stepper div { height: 6px; border-radius: 999px; background: var(--line); }
+.stepper div.on { background: var(--cta); }
+.step { display: flex; flex-direction: column; gap: 10px; padding-top: 14px; border-top: 1px dashed var(--line); }
+.step:first-of-type { border-top: 0; padding-top: 0; }
+.step-head { display: flex; align-items: center; gap: 10px; }
+.num { flex: none; width: 30px; height: 30px; border-radius: 50%; background: var(--cta); color: #fff; font-family: var(--display); font-weight: 800; display: grid; place-items: center; font-size: 15px; }
+.step h2 { font-size: 18px; }
+textarea { width: 100%; background: #faf9fc; color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 12px; font-family: var(--body); font-size: 13.5px; line-height: 1.6; resize: vertical; }
+.btn { appearance: none; border: 0; border-radius: 999px; padding: 15px 20px; font-family: var(--display); font-weight: 800; font-size: 16px; cursor: pointer; background: var(--cta); color: #fff; width: 100%; box-shadow: 0 4px 0 #e05a3a; text-align: center; text-decoration: none; display: block; }
+.btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #e05a3a; }
+.btn.sub { background: var(--surface); color: var(--text); border: 1.5px solid var(--line); box-shadow: none; font-size: 15px; padding: 12px 16px; }
+.btn.sub:active { transform: translateY(1px); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; }
+.row > * { flex: 1 1 150px; }
+.msg { min-height: 1.3em; font-size: 13.5px; color: var(--muted); }
+.msg.err { color: #c43d3d; }
+.msg.ok { color: #2b8a5c; }
+:focus-visible { outline: 3px solid #8f7cf0; outline-offset: 2px; }
+
+/* 結果 */
+.result { padding: 0; overflow: hidden; gap: 0; }
+.r-head { background: var(--gt); padding: 22px 18px 18px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.tag { font-size: 12.5px; font-weight: 700; padding: 3px 12px; border-radius: 999px; background: var(--surface); color: var(--muted); }
+.tag.mine { color: #fff; background: var(--g); }
+.r-pre { font-size: 14px; color: var(--muted); font-weight: 700; }
+.r-name { font-size: clamp(28px, 8vw, 36px); color: var(--g); }
+.r-code { font-family: var(--display); font-weight: 800; letter-spacing: .22em; font-size: 18px; color: var(--g); opacity: .8; }
+.r-art { width: min(72%, 300px); aspect-ratio: 1; border-radius: 28px; display: block; background: var(--surface); }
+.gbadge { font-size: 13px; font-weight: 700; color: #fff; background: var(--g); border-radius: 999px; padding: 3px 12px; }
+.r-catch { font-size: 17px; font-weight: 700; }
+.r-body { padding: 20px 18px 22px; display: flex; flex-direction: column; gap: 20px; }
+.sec h3 { font-size: 15px; color: var(--g); margin-bottom: 8px; }
+.axes { display: flex; flex-direction: column; gap: 14px; }
+.axis .labels { display: flex; justify-content: space-between; font-size: 13.5px; color: var(--muted); }
+.axis .labels .on { color: var(--text); font-weight: 700; }
+.axis .bar { position: relative; height: 12px; border-radius: 999px; background: #eeeaf3; margin-top: 4px; }
+.axis .fill { position: absolute; top: 0; bottom: 0; border-radius: 999px; background: var(--g); }
+.traits { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0; margin: 0; }
+.traits li { background: var(--gt); border-radius: 999px; padding: 5px 12px; font-size: 14px; font-weight: 700; }
+.ura { background: var(--gt); border-radius: 16px; padding: 14px 16px; font-weight: 700; }
+.compat { display: flex; align-items: center; gap: 12px; border: 1.5px solid var(--line); border-radius: 16px; padding: 10px 12px; background: var(--surface); cursor: pointer; width: 100%; font: inherit; color: inherit; text-align: left; }
+.compat img { width: 56px; height: 56px; border-radius: 14px; flex: none; }
+.compat .c { font-family: var(--display); font-weight: 800; font-size: 12px; letter-spacing: .14em; color: var(--muted); }
+.compat .n { font-weight: 700; }
+.share { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.card-img { width: 62%; max-width: 260px; aspect-ratio: 9 / 16; border-radius: 16px; box-shadow: 0 10px 30px rgba(40, 30, 60, .18); display: block; background: #ddd; }
+
+/* 全タイプ */
+.types h2 { font-size: 20px; }
+.tgroup { display: flex; flex-direction: column; gap: 8px; }
+.tgroup-head { display: flex; align-items: baseline; gap: 8px; padding: 6px 12px; border-radius: 12px; color: #fff; }
+.tgroup-head b { font-family: var(--display); font-size: 16px; }
+.tgroup-head span { font-size: 12.5px; opacity: .95; }
+.tgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.type-chip { appearance: none; text-align: left; background: var(--surface); border: 1.5px solid var(--line); border-radius: 14px; padding: 8px 10px; color: var(--text); font-family: var(--body); cursor: pointer; display: flex; align-items: center; gap: 10px; }
+.type-chip img { width: 44px; height: 44px; border-radius: 10px; flex: none; }
+.type-chip .c { font-family: var(--display); font-weight: 800; font-size: 11px; letter-spacing: .12em; color: var(--muted); display: block; }
+.type-chip .n { font-weight: 700; font-size: 13.5px; line-height: 1.35; display: block; }
+.type-chip.cur { border-color: var(--g); }
+footer { font-size: 12.5px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+[hidden] { display: none !important; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div class="brand">URA16</div>
+    <h1>AIだけが知ってる、<br><em>あなたの裏の顔。</em></h1>
+    <p class="muted">質問には答えなくていい。いつも話しているAIが、あなたの話しかけ方のクセから16タイプに判定する。宿題にしか使っていなくても大丈夫。</p>
+    <div class="badges"><span class="badge">質問ゼロ</span><span class="badge">約1分</span><span class="badge">無料</span></div>
+    <div class="groups" id="groups"></div>
+  </header>
+
+  <section class="panel" aria-label="診断の手順">
+    <div class="stepper" aria-hidden="true"><div id="p1" class="on"></div><div id="p2"></div><div id="p3"></div></div>
+    <div class="privacy"><span><b>会話の中身はこのサイトに届かない。</b>届くのは、AIが返すリンクの末尾の4つの点数（例：#ura-72-64-81-38-M）だけ。テスト中なので、点数とタイプだけを名前なしで集計している。</span></div>
+
+    <div class="step">
+      <div class="step-head"><span class="num">1</span><h2>診断用の文章をコピー</h2></div>
+      <textarea id="prompt" rows="5" readonly aria-label="診断用の文章"></textarea>
+      <button class="btn" id="copyBtn" type="button">文章をコピーする</button>
+      <p class="msg" id="copyMsg" role="status"></p>
+    </div>
+
+    <div class="step">
+      <div class="step-head"><span class="num">2</span><h2>いつものAIに貼って送る</h2></div>
+      <p class="small muted">Gemini・ChatGPT・Claudeなど、いちばんよく話しているAIのアプリで。過去の会話を参照する設定（Geminiは「過去のチャット」、ChatGPTは「メモリ」）がオンになっている必要がある。LINEやインスタの中で開いたブラウザだとログインが外れていることがあるので、アプリに切り替えて貼るのが確実。</p>
+      <div class="row">
+        <a class="btn sub" id="gemLink" href="https://gemini.google.com/app" rel="noopener">Geminiを開く</a>
+        <a class="btn sub" id="gptLink" href="https://chatgpt.com/" rel="noopener">ChatGPTで開く</a>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-head"><span class="num">3</span><h2>返ってきたリンクをタップ</h2></div>
+      <p class="small muted">結果がそのまま開く。Geminiはリンクを検索に変えてしまうことがあるので、そのときは返事を長押しでコピーして、ここに貼りつけてね。</p>
+      <textarea id="answer" rows="3" placeholder="AIの返事をそのまま貼りつけ（#ura- から始まる部分があればOK）"></textarea>
+      <button class="btn" id="judgeBtn" type="button">裏の顔を見る</button>
+      <p class="msg" id="judgeMsg" role="status"></p>
+      <div class="privacy" id="retryBox" hidden>
+        <span><b>「NODATA」が返ってきたら</b><br>メモリがオンでも、1回目はうまく読めないことがある。同じ会話の続きで、この文を送り返してみて。
+        <textarea id="retryText" rows="3" readonly aria-label="もう一度判定してもらう文" style="margin-top:8px"></textarea>
+        <button class="btn sub" id="retryCopy" type="button" style="margin-top:8px">この文をコピー</button>
+        <span class="msg" id="retryMsg" role="status"></span></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel result" id="result" aria-live="polite">
+    <div class="r-head">
+      <span class="tag" id="resultTag">サンプル（あなたの結果ではありません）</span>
+      <p class="r-pre" id="rPre">このタイプは</p>
+      <h2 class="r-name" id="tName"></h2>
+      <div class="r-code" id="tCode"></div>
+      <img class="r-art" id="rArt" alt="">
+      <span class="gbadge" id="gBadge"></span>
+      <p class="r-catch" id="tCatch"></p>
+    </div>
+    <div class="r-body">
+      <div class="sec"><h3>話しかけ方のバランス</h3><div class="axes" id="axes"></div></div>
+      <div class="sec"><h3>AIにだけ見せてる顔</h3><p class="ura" id="tUra"></p></div>
+      <div class="sec"><h3>こんな人</h3><ul class="traits" id="tTraits"></ul></div>
+      <div class="sec"><h3>相性がいいタイプ</h3><button class="compat" id="compat" type="button"></button></div>
+      <div class="sec share">
+        <h3 style="align-self:flex-start">結果をシェア</h3>
+        <img class="card-img" id="cardImg" alt="診断結果のカード画像">
+        <p class="small muted" id="saveHint">カード画像は長押しかスクショで保存できる。</p>
+        <button class="btn" id="saveBtn" type="button">画像を保存・シェア</button>
+        <button class="btn sub" id="inviteBtn" type="button">友達にも試してもらう</button>
+        <p class="msg" id="saveMsg" role="status"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="types" aria-labelledby="tt">
+    <h2 id="tt">全16タイプ</h2>
+    <div id="typeGroups" style="display:flex;flex-direction:column;gap:16px;margin-top:12px"></div>
+  </section>
+
+  <footer>
+    <p>テスト版。結果は遊び用で、心理学的・医学的な診断ではありません。</p>
+    <p>集計しているのは、ランダムな番号・操作の種類・点数・タイプだけです。</p>
+    <p>4つの軸（話しかけ方のクセ）：吐き出す⇄解決する／素顔⇄仮面／甘える⇄ひとりで立つ／光⇄夜</p>
+  </footer>
+</div>
+
+<canvas id="card" width="1080" height="1920" hidden></canvas>
+<canvas id="art" width="600" height="600" hidden></canvas>
+
+<script>
+/* ===== 設定（ここだけ触ればいい） ===== */
+// Apps Scriptをデプロイしたときの「ウェブアプリのURL」を貼る。空のままだと集計しない
+const LOG_URL = "https://script.google.com/macros/s/AKfycbycbRlmrU6veMaSSiQ6vfhW7UE0VJUdj9D4MGwVjGHTzTjErGZs9aCgE4TMEMX7pRwhJQ/exec";
+// 判定の境目。部内テストで点数が集まったら、各軸の中央値に置き換えて半々に分かれるよう補正する
+const THRESH = [50, 50, 50, 50];
+/* ===================================== */
+const PREVIEW_URL = "https://claude.ai/artifact/FEdnZtDYTpN6HsDA916xsd";
+const IN_FRAME = (() => { try { return window.top !== window; } catch (e) { return true; } })();
+// 結果リンクの土台。公開したページ自身のURLを自動で使う（プレビュー画面の中ではプレビューのURL）
+const BASE = IN_FRAME || !/^https?:/.test(location.protocol) ? PREVIEW_URL : location.origin + location.pathname;
+
+const PROMPT = `あなたは「URA16」という、話し方のクセ診断の判定役です。
+Geminiの「過去のチャット」やChatGPTの「メモリ」など、あなたが参照できる私との過去のやり取りを使って、私の「AIへの話しかけ方のクセ」を次の4つの軸で採点してください。話題の中身ではなく、話し方を見てください。勉強や仕事の質問しかしていなくても判定できます。
+
+【軸1】吐き出す ⇔ 解決する
+吐き出す：経緯や気持ちから、長めに書くことが多い
+解決する：用件だけを短く聞くことが多い
+
+【軸2】素顔 ⇔ 仮面
+素顔：くだけた口調で、「わからない」「無理」なども素直に書く
+仮面：整った丁寧な文で、弱みをあまり見せない
+
+【軸3】甘える ⇔ ひとりで立つ
+甘える：「これで合ってる？」と確認したり、反応や励ましを求めたりする
+ひとりで立つ：答えを受け取ったら、自分で判断して終える
+
+【軸4】光 ⇔ 夜
+光：好奇心や楽しさから話しかけることが多い
+夜：締め切りや不安、悩みに追われて話しかけることが多い
+
+ルール
+1. 採点の前に、各軸の根拠になる話し方の傾向を頭の中で思い出す。根拠は書かない。
+2. 各軸について、左側（吐き出す・素顔・甘える・光）にどれだけ当てはまるかを0〜100で採点する。50はつけない。
+3. どちらの側にも優劣はない。どの組み合わせも同じくらい魅力的なタイプになる。私に気に入られようとせず、実際の傾向だけで採点する。
+4. 過去のやり取りやメモリに手がかりが少しでもあれば、必ず4軸すべてを採点する。少なければ推測でよい。「URA:NODATA」と出力してよいのは、過去のやり取りもメモリもまったく参照できないときだけ。
+5. 判定材料の量を H（たっぷり）・M（ふつう）・L（少なめ）の1文字で表す。
+6. 出力は、次の形のリンク1行だけ。説明や前置きは書かない。やり取りの具体的な内容には絶対に触れない。
+${BASE}#ura-【軸1の点数】-【軸2の点数】-【軸3の点数】-【軸4の点数】-【材料の量】
+（【】の部分を数字とアルファベットに置き換え、【】の記号は残さない）`;
+const RETRY = "メモリはオンになっています。過去のやり取りやメモリから分かる範囲で、もう一度採点してください。手がかりが少なければ推測でかまいません。出力は指定した形のリンク1行だけでお願いします。";
+
+
+const AX = [
+  { l: "V", r: "S", ln: "吐き出す", rn: "解決する" },
+  { l: "B", r: "M", ln: "素顔", rn: "仮面" },
+  { l: "A", r: "I", ln: "甘える", rn: "ひとりで立つ" },
+  { l: "L", r: "N", ln: "光", rn: "夜" }
+];
+const GROUPS = {
+  VL: { name: "陽だまり派", desc: "思ったことを、明るくそのまま話す", color: "#d8613f", tint: "#fff0e9" },
+  VN: { name: "月夜派", desc: "夜になると、言葉があふれ出す", color: "#9c3f78", tint: "#f8eaf3" },
+  SL: { name: "青空派", desc: "好奇心のまま、短く聞いて進む", color: "#1f7f94", tint: "#e3f3f6" },
+  SN: { name: "深海派", desc: "静かに、深く、ひとりで考える", color: "#34528c", tint: "#e7ecf6" }
+};
+const gOf = (code) => code[0] + code[3];
+
+const TYPES = {
+  VBAL: { name: "ひなたの子犬", catch: "思ったことは全部しゃべる。AIのいちばんの話し相手。", traits: ["前置きが長め", "うれしいと文がはずむ", "反応がもらえると元気になる"], ura: "宿題を聞くだけのはずが、気づけば今日あったことまで話している。" },
+  VBAN: { name: "夜中の告解者", catch: "深夜2時、誰にも言えないことをそっと置いていく。", traits: ["気持ちから先に書く", "くだけた言葉で本音が出る", "聞いてもらえるだけで救われる"], ura: "締め切り前夜の「やばい」から、いつのまにか本音の相談になっている。" },
+  VBIL: { name: "ひとりごと実況者", catch: "答えはいらない。書きながら自分で整理する。", traits: ["書きながら考えるタイプ", "素直に「わからん」と言える", "答えは自分で決める"], ura: "AIを、相づちを打ってくれる実況席くらいに思っている。" },
+  VBIN: { name: "深夜ラジオの語り手", catch: "ひとりで闇を語って、ひとりで朝を迎える。", traits: ["長文で語りがち", "弱音もネタっぽく書く", "励ましはなくても平気"], ura: "誰にも聴かせない番組を、毎晩こっそり放送している。" },
+  VMAL: { name: "猫かぶりの末っ子", catch: "甘えたい。でも、甘えてるとは思われたくない。", traits: ["丁寧だけど話が長い", "「合ってるかな？」が多め", "感じのいい文を書く"], ura: "AIにすら、ちょっといい子に見られようとしている。" },
+  VMAN: { name: "月影の泣き虫", catch: "強がった言葉の裏で、本当は誰かに気づいてほしい。", traits: ["丁寧な文に不安がにじむ", "確認したがり", "優しくされると弱い"], ura: "「大丈夫です」と打ちながら、大丈夫じゃない話をしている。" },
+  VMIL: { name: "笑顔のピエロ", catch: "全部を笑い話にして、本当の顔は見せない。", traits: ["語りは長いのに弱みは見せない", "文章がどこか楽しげ", "最後は自分で決める"], ura: "AIとの会話まで、どこかネタっぽく仕上げている。" },
+  VMIN: { name: "鍵垢の住人", catch: "吐き出したい。でも、誰にもバレたくない。", traits: ["言葉は選ぶのに、量は多い", "誰にも頼らず書き切る", "観察眼が鋭い"], ura: "AIを、誰にも見つからない鍵垢として使っている。" },
+  SBAL: { name: "甘え上手な参謀", catch: "素直に頼って、最短で解決する。", traits: ["用件は短く、口調はゆるい", "「これで合ってる？」と素直に聞く", "動き出しが早い"], ura: "迷ったら即AI。決めるのは早いけど、背中は押してほしい。" },
+  SBAN: { name: "夜ふかしの探偵", catch: "眠れない夜は、不安の正体を突き止める時間。", traits: ["短い質問を何度も重ねる", "わからないことを素直に聞く", "不安な夜ほど深掘りする"], ura: "ひとつの不安を、短い質問の連打で夜通し調べ尽くしている。" },
+  SBIL: { name: "ひとり旅の冒険家", catch: "情報だけくれれば、あとは自分で行く。", traits: ["質問が短い", "好奇心で話しかける", "答えをもらったら即去る"], ura: "AIを、地図とコンパスくらいにしか思っていない。" },
+  SBIN: { name: "地下室の哲学者", catch: "短く聞いて、あとはひとりで考え続ける。", traits: ["短く鋭く聞く", "飾らない口調", "結論は自分の頭で出す"], ura: "誰にも見せない問いを、AIとだけ短く鋭くやり合っている。" },
+  SMAL: { name: "隠れ甘えの優等生", catch: "完璧に見せたい。でも、本当は助けてほしい。", traits: ["質問が整っていて丁寧", "最後に確認を入れたがる", "がんばり屋"], ura: "効率のいい方法を聞くふりをして、ひとこと褒められるのを待っている。" },
+  SMAN: { name: "ひみつの軍師", catch: "表では涼しい顔。裏では作戦会議が止まらない。", traits: ["整った文で手短に聞く", "念のための確認が多い", "不安を計画でつぶす"], ura: "表は冷静な質問、裏では作戦会議が止まらない。" },
+  SMIL: { name: "涼しい顔の司令塔", catch: "感情は持ち込まない。用件だけ、手短に。", traits: ["用件だけ、丁寧に", "感情を文に乗せない", "答えをもらったら即終了"], ura: "AIの前でもほとんど素を見せない、最強のポーカーフェイス。" },
+  SMIN: { name: "影の黒幕", catch: "誰にも見せない場所で、すべてを考え抜いている。", traits: ["短く、整った、隙のない文", "誰にも頼らない", "追い込まれても顔に出さない"], ura: "締め切り前夜でも、AIへの文面だけは崩れない。" }
+};
+
+
+const PAL = {
+  VL: { bg: ["#ffd9bd", "#ff8f98"], text: "#3b1d2a", sub: "rgba(59,29,42,.72)", track: "rgba(59,29,42,.16)", fill: "#3b1d2a", face: "#fff7f0", mask: "#3b1d2a", spark: "#ffffff", blush: "#ff8fa3" },
+  VN: { bg: ["#2a1030", "#73285a"], text: "#fbe9f0", sub: "rgba(251,233,240,.74)", track: "rgba(251,233,240,.18)", fill: "#ff9ec0", face: "#f8dce6", mask: "#14070f", spark: "#ffd98a", blush: "#ff8fb1" },
+  SL: { bg: ["#d2f3ea", "#7cc0e6"], text: "#0f2b3a", sub: "rgba(15,43,58,.72)", track: "rgba(15,43,58,.16)", fill: "#0f2b3a", face: "#f6fffc", mask: "#0f2b3a", spark: "#ffffff", blush: "#ff9fb0" },
+  SN: { bg: ["#0d1b2e", "#28507a"], text: "#e8f1ff", sub: "rgba(232,241,255,.74)", track: "rgba(232,241,255,.18)", fill: "#8fd8ff", face: "#dbe8f7", mask: "#050b14", spark: "#ffe7a3", blush: "#ff9fb8" }
+};
+
+const FACE_INK = "#2a1a22";
+const $ = (id) => document.getElementById(id);
+$("prompt").value = PROMPT;
+
+/* ---------- 匿名の集計 ---------- */
+const SRC = (new URLSearchParams(location.search).get("src") || "direct").slice(0, 20);
+let SID = "";
+try { SID = sessionStorage.getItem("ura16_sid") || ""; } catch (e) {}
+if (!SID) { SID = Math.random().toString(36).slice(2, 10); try { sessionStorage.setItem("ura16_sid", SID); } catch (e) {} }
+function track(event, extra) {
+  if (!LOG_URL) return;
+  const body = JSON.stringify(Object.assign({ sid: SID, event, src: SRC }, extra || {}));
+  try { fetch(LOG_URL, { method: "POST", mode: "no-cors", keepalive: true, headers: { "Content-Type": "text/plain;charset=utf-8" }, body }); } catch (e) {}
+}
+
+/* ---------- 解析 ---------- */
+function fromScores(scores, amount) {
+  const code = scores.map((v, i) => (v >= THRESH[i] ? AX[i].l : AX[i].r)).join("");
+  return { code, scores, amount: amount ? amount.toUpperCase() : null };
+}
+function parseAnswer(raw) {
+  const t = String(raw || "").replace(/[：]/g, ":").replace(/[－ー−]/g, "-").replace(/[０-９]/g, (d) => String.fromCharCode(d.charCodeAt(0) - 0xFEE0)).replace(/\s+/g, "");
+  if (/URA:?NODATA/i.test(t)) return { error: "nodata" };
+  const clamp = (n) => Math.max(0, Math.min(100, parseInt(n, 10)));
+  let m = t.match(/ura-(\d{1,3})-(\d{1,3})-(\d{1,3})-(\d{1,3})(?:-([HML]))?/i);
+  if (m) return fromScores(m.slice(1, 5).map(clamp), m[5]);
+  m = t.match(/URA:[VS][BM][AI][LN]:(\d{1,3}):(\d{1,3}):(\d{1,3}):(\d{1,3})(?::([HML]))?/i);
+  if (m) return fromScores(m.slice(1, 5).map(clamp), m[5]);
+  m = t.match(/URA:([VS][BM][AI][LN])/i);
+  if (m) {
+    const code = m[1].toUpperCase();
+    return { code, scores: code.split("").map((c, i) => (c === AX[i].l ? 66 : 34)), amount: null };
+  }
+  return { error: "notfound" };
+}
+function compatOf(code) {
+  const c = code.split("");
+  c[0] = c[0] === "V" ? "S" : "V";
+  c[2] = c[2] === "A" ? "I" : "A";
+  return c.join("");
+}
+
+/* ---------- 描画 ---------- */
+function rr(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+function wrapJa(ctx, text, maxW) {
+  const lines = [];
+  let cur = "";
+  for (const ch of text) {
+    if (ctx.measureText(cur + ch).width > maxW && cur) {
+      if ("、。」』）！？".includes(ch)) { cur += ch; lines.push(cur); cur = ""; continue; }
+      lines.push(cur); cur = ch;
+    } else cur += ch;
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+function drawEmblem(ctx, cx, cy, R, code, pal) {
+  const vent = code[0] === "V", mask = code[1] === "M", amae = code[2] === "A", light = code[3] === "L";
+  ctx.save();
+  // 背景モチーフ：光は放射線、夜は三日月
+  if (light) {
+    ctx.strokeStyle = pal.spark; ctx.lineCap = "round"; ctx.lineWidth = 14;
+    for (let i = 0; i < 14; i++) {
+      const a = (i / 14) * Math.PI * 2 + 0.1;
+      const r1 = R * 1.22, r2 = R * (i % 2 ? 1.36 : 1.48);
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
+      ctx.lineTo(cx + Math.cos(a) * r2, cy + Math.sin(a) * r2);
+      ctx.stroke();
+    }
+  } else {
+    const off = document.createElement("canvas");
+    off.width = off.height = Math.ceil(R * 1.6);
+    const o = off.getContext("2d");
+    const mr = R * 0.62;
+    o.fillStyle = pal.spark;
+    o.beginPath(); o.arc(off.width / 2, off.height / 2, mr, 0, Math.PI * 2); o.fill();
+    o.globalCompositeOperation = "destination-out";
+    o.beginPath(); o.arc(off.width / 2 + mr * 0.42, off.height / 2 - mr * 0.28, mr * 0.9, 0, Math.PI * 2); o.fill();
+    ctx.drawImage(off, cx + R * 0.35, cy - R * 1.45);
+    ctx.fillStyle = pal.spark;
+    [[-1.15, -0.9, 9], [1.25, 0.45, 7], [-1.3, 0.6, 6], [0.2, -1.32, 5]].forEach(([dx, dy, s]) => {
+      ctx.beginPath(); ctx.arc(cx + dx * R, cy + dy * R, s, 0, Math.PI * 2); ctx.fill();
+    });
+  }
+  // 顔：吐き出すは丸、解決するは角丸の四角
+  ctx.fillStyle = pal.face;
+  ctx.strokeStyle = FACE_INK; ctx.lineWidth = 10;
+  if (vent) { ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); }
+  else { rr(ctx, cx - R * 0.93, cy - R * 0.93, R * 1.86, R * 1.86, R * 0.42); }
+  ctx.fill(); ctx.stroke();
+
+  const ey = cy - R * 0.12, ex = R * 0.38;
+  // 仮面：目元を覆う帯
+  if (mask) {
+    ctx.fillStyle = pal.mask;
+    ctx.beginPath();
+    ctx.moveTo(cx - R * 0.98, ey - R * 0.08);
+    ctx.quadraticCurveTo(cx - R * 0.6, ey - R * 0.42, cx, ey - R * 0.2);
+    ctx.quadraticCurveTo(cx + R * 0.6, ey - R * 0.42, cx + R * 0.98, ey - R * 0.08);
+    ctx.quadraticCurveTo(cx + R * 0.7, ey + R * 0.34, cx + R * 0.16, ey + R * 0.18);
+    ctx.quadraticCurveTo(cx, ey + R * 0.1, cx - R * 0.16, ey + R * 0.18);
+    ctx.quadraticCurveTo(cx - R * 0.7, ey + R * 0.34, cx - R * 0.98, ey - R * 0.08);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = pal.face;
+    [-1, 1].forEach((s) => { ctx.beginPath(); ctx.ellipse(cx + s * ex, ey, R * 0.17, R * 0.12, 0, 0, Math.PI * 2); ctx.fill(); });
+  }
+  // 目：甘えるは丸い目、ひとりで立つは細い目
+  ctx.fillStyle = FACE_INK; ctx.strokeStyle = FACE_INK; ctx.lineCap = "round";
+  [-1, 1].forEach((s) => {
+    const x = cx + s * ex;
+    if (amae) {
+      ctx.beginPath(); ctx.arc(x, ey, R * 0.085, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#ffffff"; ctx.beginPath(); ctx.arc(x + R * 0.03, ey - R * 0.03, R * 0.026, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = FACE_INK;
+    } else {
+      ctx.lineWidth = 11; ctx.beginPath(); ctx.moveTo(x - R * 0.1, ey); ctx.lineTo(x + R * 0.1, ey); ctx.stroke();
+    }
+  });
+  if (amae) {
+    ctx.fillStyle = pal.blush; ctx.globalAlpha = 0.55;
+    [-1, 1].forEach((s) => { ctx.beginPath(); ctx.ellipse(cx + s * R * 0.55, cy + R * 0.2, R * 0.13, R * 0.075, 0, 0, Math.PI * 2); ctx.fill(); });
+    ctx.globalAlpha = 1;
+  }
+  // 口：吐き出すは開いた口、解決するは一文字
+  ctx.fillStyle = FACE_INK; ctx.strokeStyle = FACE_INK;
+  const my = cy + R * 0.42;
+  if (vent) { ctx.beginPath(); ctx.ellipse(cx, my, R * 0.1, R * 0.08, 0, 0, Math.PI * 2); ctx.fill(); }
+  else { ctx.lineWidth = 11; ctx.beginPath(); ctx.moveTo(cx - R * 0.14, my); ctx.lineTo(cx + R * 0.14, my); ctx.stroke(); }
+  ctx.restore();
+}
+/* ---------- イラスト（img/タイプ.png があれば使い、なければ顔マークで代用） ---------- */
+const IMG_CACHE = {};
+function typeImage(code) {
+  if (!(code in IMG_CACHE)) {
+    IMG_CACHE[code] = new Promise((resolve) => {
+      const im = new Image();
+      im.onload = () => resolve(im);
+      im.onerror = () => resolve(null);
+      im.src = `img/${code}.png`;
+    });
+  }
+  return IMG_CACHE[code];
+}
+async function ensureFonts(texts) {
+  if (!document.fonts || !document.fonts.load) return;
+  const sample = texts.join("");
+  try {
+    await Promise.race([
+      Promise.all([
+        document.fonts.load('800 96px "M PLUS Rounded 1c"', sample),
+        document.fonts.load('700 44px "Zen Kaku Gothic New"', sample),
+        document.fonts.load('400 44px "Zen Kaku Gothic New"', sample)
+      ]),
+      new Promise((r) => setTimeout(r, 2500))
+    ]);
+  } catch (e) {}
+}
+const DISPLAY_CV = '"M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", "Hiragino Sans", "Noto Sans JP", sans-serif';
+const BODY_CV = '"Zen Kaku Gothic New", "Hiragino Sans", "Noto Sans JP", sans-serif';
+
+// キャラの絵：イラストがあればそれを、なければ顔マークを、グループ色の角丸の正方形に描く
+async function drawArt(ctx, x, y, size, code) {
+  const pal = PAL[gOf(code)];
+  const art = await typeImage(code);
+  ctx.save();
+  rr(ctx, x, y, size, size, size * 0.09); ctx.clip();
+  if (art) {
+    const sc = Math.max(size / art.naturalWidth, size / art.naturalHeight);
+    const dw = art.naturalWidth * sc, dh = art.naturalHeight * sc;
+    ctx.drawImage(art, x + (size - dw) / 2, y + (size - dh) / 2, dw, dh);
+  } else {
+    const g = ctx.createLinearGradient(x, y, x + size * 0.3, y + size);
+    g.addColorStop(0, pal.bg[0]); g.addColorStop(1, pal.bg[1]);
+    ctx.fillStyle = g; ctx.fillRect(x, y, size, size);
+    drawEmblem(ctx, x + size / 2, y + size * 0.56, size * 0.28, code, pal);
+  }
+  ctx.restore();
+}
+const ART_URL = {};
+async function artURL(code) {
+  if (!ART_URL[code]) {
+    const cv = $("art"), ctx = cv.getContext("2d");
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    await drawArt(ctx, 0, 0, cv.width, code);
+    try { ART_URL[code] = cv.toDataURL("image/png"); } catch (e) { ART_URL[code] = ""; }
+  }
+  return ART_URL[code];
+}
+
+async function drawCard(code, scores) {
+  const T = TYPES[code];
+  const pal = PAL[gOf(code)];
+  const head = "AIだけが知ってる、わたしの裏の顔";
+  const host = !IN_FRAME && /^https?:/.test(location.protocol) ? (location.host + location.pathname).replace(/\/$/, "") : "";
+  const foot = host ? `#URA16 ｜ ${host}` : "#URA16 で、あなたの裏の顔も";
+  await ensureFonts([head, foot, T.name, T.catch, code, "URA16", GROUPS[gOf(code)].name, ...AX.flatMap((a) => [a.ln, a.rn]), "0123456789%"]);
+  const cv = $("card"), ctx = cv.getContext("2d");
+  const W = cv.width;
+  const g = ctx.createLinearGradient(0, 0, W * 0.3, cv.height);
+  g.addColorStop(0, pal.bg[0]); g.addColorStop(1, pal.bg[1]);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, cv.height);
+
+  ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = pal.sub; ctx.font = `700 40px ${BODY_CV}`;
+  if ("letterSpacing" in ctx) ctx.letterSpacing = "10px";
+  ctx.fillText("URA16", W / 2, 140);
+  if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
+  ctx.fillStyle = pal.text; ctx.font = `700 46px ${BODY_CV}`;
+  ctx.fillText(head, W / 2, 212);
+
+  await drawArt(ctx, (W - 620) / 2, 280, 620, code);
+
+  ctx.fillStyle = pal.sub; ctx.font = `700 40px ${BODY_CV}`;
+  ctx.fillText(`${GROUPS[gOf(code)].name}　${code}`, W / 2, 990);
+  ctx.fillStyle = pal.text;
+  let fs = 108;
+  ctx.font = `800 ${fs}px ${DISPLAY_CV}`;
+  while (ctx.measureText(T.name).width > 960 && fs > 64) { fs -= 4; ctx.font = `800 ${fs}px ${DISPLAY_CV}`; }
+  ctx.fillText(T.name, W / 2, 1120);
+
+  ctx.font = `400 44px ${BODY_CV}`;
+  let lines = wrapJa(ctx, T.catch, 900);
+  if (lines.length > 1) {
+    const per = ctx.measureText(T.catch).width / lines.length;
+    const balanced = wrapJa(ctx, T.catch, Math.min(900, per * 1.12));
+    if (balanced.length <= 2) lines = balanced;
+  }
+  lines.slice(0, 2).forEach((ln, i) => ctx.fillText(ln, W / 2, 1210 + i * 64));
+
+  const x0 = 110, x1 = W - 110, top = 1420;
+  AX.forEach((a, i) => {
+    const y = top + i * 100;
+    const s = scores[i], left = code[i] === a.l, pct = left ? s : 100 - s;
+    ctx.font = `700 34px ${BODY_CV}`;
+    ctx.textAlign = "left"; ctx.fillStyle = left ? pal.text : pal.sub;
+    ctx.fillText(a.ln + (left ? `  ${pct}%` : ""), x0, y);
+    ctx.textAlign = "right"; ctx.fillStyle = left ? pal.sub : pal.text;
+    ctx.fillText((left ? "" : `${pct}%  `) + a.rn, x1, y);
+    ctx.fillStyle = pal.track; rr(ctx, x0, y + 18, x1 - x0, 20, 10); ctx.fill();
+    ctx.fillStyle = pal.fill;
+    const w = Math.max(20, (x1 - x0) * pct / 100);
+    if (left) rr(ctx, x0, y + 18, w, 20, 10); else rr(ctx, x1 - w, y + 18, w, 20, 10);
+    ctx.fill();
+  });
+  ctx.textAlign = "center"; ctx.fillStyle = pal.sub; ctx.font = `700 38px ${BODY_CV}`;
+  ctx.fillText(foot, W / 2, 1866);
+  return cv;
+}
+
+/* ---------- 画面 ---------- */
+let current = null;
+const defaultScores = (code) => code.split("").map((c, i) => (c === AX[i].l ? 70 : 30));
+
+async function showResult(code, scores, mode) {
+  const T = TYPES[code], G = GROUPS[gOf(code)];
+  current = { code, scores };
+  const root = document.documentElement;
+  root.style.setProperty("--g", G.color);
+  root.style.setProperty("--gt", G.tint);
+  const tag = $("resultTag");
+  tag.textContent = mode === "mine" ? "あなたの結果" : mode === "browse" ? "タイプ紹介" : "サンプル（あなたの結果ではありません）";
+  tag.className = "tag" + (mode === "mine" ? " mine" : "");
+  $("rPre").textContent = mode === "mine" ? "あなたの裏の顔は" : "このタイプは";
+  $("tName").textContent = T.name;
+  $("tCode").textContent = code;
+  $("gBadge").textContent = G.name;
+  $("tCatch").textContent = T.catch;
+  $("tUra").textContent = T.ura;
+  $("tTraits").innerHTML = "";
+  T.traits.forEach((t) => { const li = document.createElement("li"); li.textContent = t; $("tTraits").appendChild(li); });
+
+  const axes = $("axes"); axes.innerHTML = "";
+  AX.forEach((a, i) => {
+    const left = code[i] === a.l, s = scores[i], pct = left ? s : 100 - s;
+    const row = document.createElement("div"); row.className = "axis";
+    row.innerHTML = `<div class="labels"><span class="${left ? "on" : ""}">${a.ln}${left ? " " + pct + "%" : ""}</span><span class="${left ? "" : "on"}">${left ? "" : pct + "% "}${a.rn}</span></div><div class="bar"><div class="fill" style="${left ? "left:0" : "right:0"};width:${pct}%"></div></div>`;
+    axes.appendChild(row);
+  });
+
+  const cc = compatOf(code);
+  $("compat").innerHTML = `<img alt="" src=""><span><span class="c">${cc}</span><br><span class="n">${TYPES[cc].name}</span></span>`;
+  $("compat").onclick = () => showResult(cc, defaultScores(cc), "browse").then(scrollToResult);
+  artURL(cc).then((u) => { const im = $("compat").querySelector("img"); if (im) im.src = u; });
+
+  document.querySelectorAll(".type-chip").forEach((b) => b.classList.toggle("cur", b.dataset.code === code));
+  $("saveMsg").textContent = "";
+  $("rArt").src = await artURL(code);
+  $("rArt").alt = `${T.name}のイラスト`;
+  const cv = await drawCard(code, scores);
+  try { $("cardImg").src = cv.toDataURL("image/png"); } catch (e) {}
+  $("cardImg").alt = `診断結果のカード：${code} ${T.name}`;
+  if (mode === "mine") { ["p1", "p2", "p3"].forEach((id) => $(id).classList.add("on")); }
+}
+function scrollToResult() { $("result").scrollIntoView({ behavior: "smooth", block: "start" }); }
+
+function buildGroups() {
+  const box = $("groups");
+  Object.values(GROUPS).forEach((G) => {
+    const d = document.createElement("div"); d.className = "gcard"; d.style.background = G.color;
+    d.innerHTML = `<b>${G.name}</b><span>${G.desc}</span>`;
+    box.appendChild(d);
+  });
+}
+function buildTypes() {
+  const wrap = $("typeGroups");
+  Object.entries(GROUPS).forEach(([key, G]) => {
+    const sec = document.createElement("div"); sec.className = "tgroup";
+    sec.innerHTML = `<div class="tgroup-head" style="background:${G.color}"><b>${G.name}</b><span>${G.desc}</span></div>`;
+    const grid = document.createElement("div"); grid.className = "tgrid";
+    Object.keys(TYPES).filter((c) => gOf(c) === key).forEach((code) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "type-chip"; b.dataset.code = code;
+      b.innerHTML = `<img alt="" src=""><span><span class="c">${code}</span><span class="n">${TYPES[code].name}</span></span>`;
+      artURL(code).then((u) => { b.querySelector("img").src = u; });
+      b.addEventListener("click", () => showResult(code, defaultScores(code), "browse").then(scrollToResult));
+      grid.appendChild(b);
+    });
+    sec.appendChild(grid); wrap.appendChild(sec);
+  });
+}
+
+async function copyText(text, msgEl, okText, fallbackEl) {
+  msgEl.className = "msg";
+  try { await navigator.clipboard.writeText(text); msgEl.textContent = okText; msgEl.classList.add("ok"); return true; }
+  catch (e) {
+    if (fallbackEl) { fallbackEl.focus(); fallbackEl.select(); }
+    msgEl.textContent = "自動でコピーできなかった。選択した文章を長押しでコピーしてね。";
+    return false;
+  }
+}
+$("copyBtn").addEventListener("click", async () => {
+  if (await copyText(PROMPT, $("copyMsg"), "コピーした。いつものAIに貼って送ってね。", $("prompt"))) {
+    track("copy"); $("p2").classList.add("on");
+  }
+});
+$("retryText").value = RETRY;
+$("retryCopy").addEventListener("click", () => copyText(RETRY, $("retryMsg"), "コピーした。", $("retryText")));
+
+$("judgeBtn").addEventListener("click", async () => {
+  const msg = $("judgeMsg"); msg.className = "msg";
+  const r = parseAnswer($("answer").value);
+  $("retryBox").hidden = true;
+  if (r.error === "nodata") {
+    track("nodata");
+    msg.textContent = "AIが過去の会話を読めなかったみたい。下の文を送り返すと、たいてい2回目で判定してくれる。";
+    msg.classList.add("err"); $("retryBox").hidden = false; return;
+  }
+  if (r.error) {
+    track("notfound");
+    msg.textContent = "点数が見つからなかった。AIの返事をそのまま全部貼ってね。#ura- から始まる部分が必要。";
+    msg.classList.add("err"); return;
+  }
+  msg.textContent = r.amount === "L" ? "判定材料は少なめ。AIともっと話すと、結果が変わるかも。" : "";
+  track("result", { via: "paste", code: r.code, scores: r.scores, amount: r.amount || "" });
+  await showResult(r.code, r.scores, "mine");
+  scrollToResult();
+});
+
+/* 保存・シェア：プレビュー画面ではClaudeの保存機能、公開版ではスマホの共有シートかダウンロード */
+let dl = null;
+if (window.claude && typeof window.claude.use === "function") {
+  window.claude.use("downloads").then((ns) => { dl = ns; }).catch(() => {});
+}
+$("saveBtn").addEventListener("click", () => {
+  if (!current) return;
+  const msg = $("saveMsg"); msg.className = "msg";
+  $("card").toBlob(async (blob) => {
+    if (!blob) { msg.textContent = "画像を作れなかった。スクショで保存してね。"; msg.classList.add("err"); return; }
+    const name = `URA16_${current.code}.png`;
+    if (dl) {
+      try { await dl.save({ filename: name, data: blob }); msg.textContent = "保存した。載せるときは #URA16 をつけてね。"; msg.classList.add("ok"); }
+      catch (e) { msg.textContent = e && e.code === "declined" ? "保存をやめた。" : "ここでは保存できなかった。長押しかスクショで保存してね。"; }
+      return;
+    }
+    const file = new File([blob], name, { type: "image/png" });
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], text: "#URA16" });
+        track("share", { code: current.code });
+        msg.textContent = "載せるときは #URA16 をつけてね。"; msg.classList.add("ok");
+        return;
+      }
+    } catch (e) { if (e && e.name === "AbortError") { msg.textContent = "共有をやめた。"; return; } }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    track("save", { code: current.code });
+    msg.textContent = "保存した。ストーリーに載せるなら #URA16 をつけてね。"; msg.classList.add("ok");
+  }, "image/png");
+});
+$("inviteBtn").addEventListener("click", async () => {
+  const url = (IN_FRAME ? PREVIEW_URL : location.origin + location.pathname) + "?src=share";
+  const text = "AIだけが知ってる、裏の顔診断。質問ゼロで1分。";
+  track("invite");
+  try { if (navigator.share) { await navigator.share({ title: "URA16", text, url }); return; } } catch (e) { if (e && e.name === "AbortError") return; }
+  copyText(`${text} ${url}`, $("saveMsg"), "リンクをコピーした。LINEやDMに貼ってね。");
+});
+
+$("gptLink").href = "https://chatgpt.com/?q=" + encodeURIComponent(PROMPT);
+$("gptLink").addEventListener("click", () => track("open_chatgpt"));
+$("gemLink").addEventListener("click", () => track("open_gemini"));
+
+function resultFromHash() {
+  const h = decodeURIComponent((location.hash || "").replace(/^#/, ""));
+  if (!/^ura-/i.test(h)) return false;
+  const r = parseAnswer(h);
+  if (r.error) return false;
+  track("result", { via: "link", code: r.code, scores: r.scores, amount: r.amount || "" });
+  showResult(r.code, r.scores, "mine").then(() => $("result").scrollIntoView({ block: "start" }));
+  if (r.amount === "L") { $("judgeMsg").textContent = "判定材料は少なめ。AIともっと話すと、結果が変わるかも。"; }
+  return true;
+}
+window.addEventListener("hashchange", resultFromHash);
+
+track("visit", { hasResult: /^#ura-/i.test(location.hash) ? 1 : 0 });
+buildGroups();
+buildTypes();
+if (!resultFromHash()) showResult("VBAN", [72, 64, 81, 38], "sample");
+</script>
+</body>
+</html>
